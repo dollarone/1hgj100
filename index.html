@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>Run Like Hell: remake</title>
+
+		<script type="text/javascript" src="js/phaser.js"></script>
+		<script type="text/javascript" src="js/Boot.js"></script>
+		<script type="text/javascript" src="js/Preload.js"></script>
+		<script type="text/javascript" src="js/Game.js"></script>
+
+		<style>
+		  body {
+		    padding: 0px;
+		    margin: 0px;
+		  }
+		  </style>
+	</head>
+
+	<body width="100%">   
+		<!-- include the main game file -->
+		<script src="js/main.js"></script>
+		<div id="mycanvas" style="width: 90%; height: 100%; float:right;"></div>
+        <div id="highscores" style="position: absolute; width: 20%; height: 100%; float:left;"><center><h2>Run Like Hell</h2><p>You are Gaben and you must run!</p><br /><i>Use mouse or keys: space (jump) and r (reset).</i></br /><br /><br /></div>
+
+<script type="text/javascript">
+function setCookie(cname, cvalue, exdays) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+    }
+    return "";
+}
+
+function ajaxCall(method, url, data, callback) {
+    var xmlhttp;
+
+    if (window.XMLHttpRequest) {
+        // code for IE7+, Firefox, Chrome, Opera, Safari
+        xmlhttp = new XMLHttpRequest();
+    } else {
+        // code for IE6, IE5
+        xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
+            if(xmlhttp.status == 200){
+                callback(xmlhttp.responseText);
+            }
+            else if(xmlhttp.status == 400) {
+                console.log('There was an error 400')
+            }
+            else {
+                console.log('something else other than 200 was returned')
+            }
+        }
+    }
+
+    xmlhttp.open(method, url, true);
+    xmlhttp.send(data);
+}
+function promptForNameAndSubmitHighscore(score) {
+	if (score < minScore) {
+		return;
+	}
+	promptText = "You are a top runner! Please enter your name";
+	if (score > maxScore) {
+		promptText = "Congratulations! You beat the top score! Please enter your name"
+	}
+
+	var person = getCookie("name");
+    if (person == "" || person == "null" || person == null) {
+        person = "Gaben";
+    } 
+
+    person = prompt(promptText, person);
+	setCookie("name", person, 365);
+
+    var xmlhttp;
+
+    if (window.XMLHttpRequest) {
+        // code for IE7+, Firefox, Chrome, Opera, Safari
+        xmlhttp = new XMLHttpRequest();
+    } else {
+        // code for IE6, IE5
+        xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+
+    xmlhttp.onreadystatechange = function() {
+        if (xmlhttp.readyState == XMLHttpRequest.DONE ) {
+            if(xmlhttp.status == 200){
+                parseHighscores(xmlhttp.responseText);
+            }
+            else if(xmlhttp.status == 400) {
+                console.log('There was an error 400')
+            }
+            else {
+                console.log('something else other than 200 was returned')
+            }
+        }
+    }
+
+    var data = "name=" + encodeURIComponent(person) + "&score=" + score;
+    xmlhttp.open("POST", "https://dollarone.games/node/runlikehellremake/submitHighscore", false);
+    xmlhttp.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xmlhttp.send(data);
+}
+function getHighscores() {
+	ajaxCall("GET","https://dollarone.games/node/runlikehellremake/getHighscores", null, parseHighscores);
+}
+
+var maxScore;
+var minScore;
+
+function parseHighscores(response) {
+
+    var arr = JSON.parse(response);
+    var i;
+    var out = "<center><h2>Run Like Hell: remake</h2><p>You are Gaben and you must run!</p><br /><i>Use mouse or keys: space (jump) and r (reset).</i></br /><br /><br /><b>Top 10 runners:</b><br /><br /><table cellpadding='5'>";
+
+    arr.highscores.sort(function (a, b) {
+    	if (a.score > b.score) {
+    		return -1; // -1; top score is #1
+    	}
+    	if (b.score > a.score) {
+    		return 1;
+    	}
+    	return 0;
+    });
+
+    for(i = 0; i < arr.highscores.length && i < 10; i++) {
+        out += "<tr><td>" + 
+        (arr.highscores[i].name == "null" ? "anonymous" : arr.highscores[i].name) +
+        "</td><td>" +
+        arr.highscores[i].score +
+        "</td></tr>";
+    }
+    out += "</table></center>";
+    document.getElementById("highscores").innerHTML = out;
+    maxScore = arr.highscores[0].score;
+    minScore = arr.highscores[i].score;
+}
+
+getHighscores();
+
+</script>
+	</body>
+</html>
